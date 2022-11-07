@@ -1,0 +1,11 @@
+[single]
+192.168.1.5
+
+[control-plane]
+kubernetes-01.teokyllc.internal
+kubernetes-02.teokyllc.internal
+
+[workers]
+k8s-worker-01.teokyllc.internal
+k8s-worker-02.teokyllc.internal
+k8s-worker-03.teokyllc.internal
