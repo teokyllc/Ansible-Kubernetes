@@ -1,0 +1,3 @@
+hostname: k8s
+kubernetes_fqdn: kubernetes.teokyllc.internal
+kubernetes_pod_cidr: 10.244.0.0/16

@@ -1,0 +1,72 @@
+---
+- name: Add Actions Runner Controller chart repo
+  kubernetes.core.helm_repository:
+    name: actions-runner-controller
+    repo_url: "https://actions-runner-controller.github.io/actions-runner-controller"
+
+- name: Get Github PAT from Vault
+  ansible.builtin.shell: |
+    export VAULT_ADDR={{ vault_addr }}
+    export VAULT_TOKEN={{ vault_token }}
+    vault kv get -tls-skip-verify -mount=kv -field=pat github
+  register: github_pat
+
+- name: Deploy Actions Runner Controller
+  kubernetes.core.helm:
+    name: actions-runner-controller
+    chart_ref: actions-runner-controller/actions-runner-controller
+    release_namespace: "{{ actions_runner_controller_namespace }}"
+    create_namespace: true
+    wait: yes
+    atomic: yes
+    values:
+      authSecret: 
+        enabled: true
+        create: true
+        github_token: "{{ github_pat.stdout }}"
+      image:
+        actionsRunnerRepositoryAndTag: "{{ actions_runner_repository }}/{{ actions_runner_image }}:{{ actions_runner_tag }}"
+        actionsRunnerImagePullSecrets: 
+        - acr-access
+
+- name: Base 64 encode dockerconfigjson
+  ansible.builtin.shell: |
+    export VAULT_ADDR={{ vault_addr }}
+    export VAULT_TOKEN={{ vault_token }}
+    vault kv get -tls-skip-verify -mount=kv -field=dockerconfigjson docker/registries/ataylorregistry
+  register: dockerconfigjson
+
+- name: Create Actions Runner namespace
+  kubernetes.core.k8s:
+    name: "{{ actions_runner_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create a Docker Registry secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: acr-access
+        namespace: "{{ actions_runner_namespace }}"
+      data:
+        .dockerconfigjson: "{{ dockerconfigjson.stdout }}"
+      type: kubernetes.io/dockerconfigjson
+
+- name: Deploy Actions Runner Deployment
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: actions.summerwind.dev/v1alpha1
+      kind: RunnerDeployment
+      metadata:
+        name: runnerdeploy
+        namespace: "{{ actions_runner_namespace }}"
+      spec:
+        replicas: "{{ actions_runner_replicas }}"
+        template:
+          spec:
+            organization: "{{ github_org }}"

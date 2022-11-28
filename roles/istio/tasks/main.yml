@@ -1,0 +1,80 @@
+---
+- name: Create istio-operator namespace
+  kubernetes.core.k8s:
+    name: istio-operator
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Create istio-system namespace
+  kubernetes.core.k8s:
+    name: istio-system
+    api_version: v1
+    kind: Namespace
+    state: present
+
+- name: Download Istio release
+  ansible.builtin.shell: |
+    wget https://github.com/istio/istio/releases/download/{{ istio_version }}/istio-{{ istio_version }}-linux-amd64.tar.gz
+    tar -xzvf istio-{{ istio_version }}-linux-amd64.tar.gz
+    mv istio-{{ istio_version }} /tmp
+    rm -f istio-{{ istio_version }}-linux-amd64.tar.gz
+
+- name: Deploy Istio Operator chart
+  kubernetes.core.helm:
+    name: istio-operator
+    chart_ref: /tmp/istio-{{ istio_version }}/manifests/charts/istio-operator
+    release_namespace: istio-operator
+    wait: yes
+    atomic: yes
+
+- name: Deploy Istio Service Mesh
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: install.istio.io/v1alpha1
+      kind: IstioOperator
+      metadata:
+        namespace: istio-system
+        name: istio-control-plane
+      spec:
+        profile: default
+
+- name: Create a sample app namespace
+  when: istio_sample_app_enabled
+  kubernetes.core.k8s:
+    state: present
+    kind: Namespace
+    name: "{{ istio_sample_app_namespace }}"
+    definition:
+      metadata:
+        labels:
+          istio-injection: enabled
+
+- name: Download bookinfo manifest
+  when: istio_sample_app_enabled
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/istio/istio/release-{{ istio_version.split(".")[0] + '.' + istio_version.split(".")[1] }}/samples/bookinfo/platform/kube/bookinfo.yaml
+    dest: ~/bookinfo.yaml
+    mode: '0664'
+
+- name: Download bookinfo routing manifest
+  when: istio_sample_app_enabled
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/istio/istio/release-{{ istio_version.split(".")[0] + '.' + istio_version.split(".")[1] }}/samples/bookinfo/networking/bookinfo-gateway.yaml
+    dest: ~/bookinfo-routing.yaml
+    mode: '0664'
+
+- name: Apply bookinfo manifest
+  when: istio_sample_app_enabled
+  kubernetes.core.k8s:
+    state: present
+    src: ~/bookinfo.yaml
+    namespace: "{{ istio_sample_app_namespace }}"
+
+- name: Apply bookinfo routing manifest
+  when: istio_sample_app_enabled
+  kubernetes.core.k8s:
+    state: present
+    src: ~/bookinfo-routing.yaml
+    namespace: "{{ istio_sample_app_namespace }}"

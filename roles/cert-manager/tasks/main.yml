@@ -1,0 +1,77 @@
+---
+- name: Add cert-manager chart repo
+  kubernetes.core.helm_repository:
+    name: jetstack
+    repo_url: "https://charts.jetstack.io"
+
+- name: Deploy cert-manager
+  kubernetes.core.helm:
+    name: cert-manager
+    chart_ref: jetstack/cert-manager
+    release_namespace: "{{ cert_manager_namespace }}"
+    create_namespace: true
+    wait: yes
+    atomic: yes
+    values:
+        installCRDs: "true"
+
+- name: Get cert-manager approle id from Vault
+  when: vault_issuer_enabled
+  ansible.builtin.shell: |
+    export VAULT_ADDR={{ vault_addr }}
+    export VAULT_TOKEN={{ vault_token }}
+    vault kv get -tls-skip-verify -mount=kv -field=approle_role_id cert-manager
+  register: approle
+
+- name: Get cert-manager approle secret id from Vault
+  when: vault_issuer_enabled
+  ansible.builtin.shell: |
+    export VAULT_ADDR={{ vault_addr }}
+    export VAULT_TOKEN={{ vault_token }}
+    vault kv get -tls-skip-verify -mount=kv -field=approle_secret_id cert-manager
+  register: approle_secret
+
+- name: Get CA cert from Vault
+  when: vault_issuer_enabled
+  ansible.builtin.shell: |
+    export VAULT_ADDR={{ vault_addr }}
+    export VAULT_TOKEN={{ vault_token }}
+    vault kv get -tls-skip-verify -mount=kv -field=b64_ca_cert cert-manager
+  register: b64_ca_cert
+
+- name: Create Vault approle secret
+  when: vault_issuer_enabled
+  kubernetes.core.k8s:
+    state: present
+    definition:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+            name: vault-approle-secret
+            namespace: "{{ cert_manager_namespace }}"
+        stringData:
+            secretId: "{{ approle_secret.stdout }}"
+        type: Opaque
+
+- name: Create a Vault Issuer
+  when: vault_issuer_enabled
+  kubernetes.core.k8s:
+    state: present
+    definition:
+        apiVersion: cert-manager.io/v1
+        kind: ClusterIssuer
+        metadata:
+          name: vault-issuer
+        spec:
+          vault:
+            path: "{{ vault_signing_path }}"
+            server: "{{ vault_addr }}"
+            caBundle: "{{ b64_ca_cert.stdout }}"
+            auth:
+              appRole:
+                path: approle
+                roleId: "{{ approle.stdout }}"
+                secretRef:
+                  name: vault-approle-secret
+                  key: secretId
+

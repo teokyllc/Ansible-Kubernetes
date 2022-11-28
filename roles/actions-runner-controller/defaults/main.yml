@@ -1,0 +1,7 @@
+github_org: teokyllc
+actions_runner_controller_namespace: actions-runner-system
+actions_runner_namespace: actions-runner
+actions_runner_repository: ataylorregistry.azurecr.io
+actions_runner_image: actions-runner-dind
+actions_runner_tag: latest
+actions_runner_replicas: 1

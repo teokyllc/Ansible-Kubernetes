@@ -1,0 +1,39 @@
+---
+- name: Enable strict ARP mode
+  ansible.builtin.shell: |
+    kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e "s/strictARP: false/strictARP: true/" | kubectl apply -f - -n kube-system
+    kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e 's/mode: ""/mode: "ipvs"/' | kubectl apply -f - -n kube-system
+
+- name: Add Metal LB chart repo
+  kubernetes.core.helm_repository:
+    name: metallb
+    repo_url: "https://metallb.github.io/metallb"
+
+- name: Deploy Metal LB
+  kubernetes.core.helm:
+    name: metallb
+    chart_ref: metallb/metallb
+    release_namespace: "{{ metallb_namespace }}"
+    create_namespace: true
+    wait: yes
+    atomic: yes
+
+- name: Create Metal LB IP Address Pool
+  ansible.builtin.shell: |
+    sleep 60
+    cat <<EOF | kubectl apply -f -
+    apiVersion: metallb.io/v1beta1
+    kind: IPAddressPool
+    metadata:
+      name: ip-pool
+      namespace: metallb-system
+    spec:
+      addresses:
+      - {{ metallb_ip_range }}
+    ---
+    apiVersion: metallb.io/v1beta1
+    kind: L2Advertisement
+    metadata:
+      name: l2advertisement
+      namespace: metallb-system
+    EOF

@@ -1,0 +1,7 @@
+argo_cd_namespace: argo-cd
+argo_cd_fqdn: argocd.teokyllc.internal
+redis_ha: false
+controller_replicas: 1
+repo_server_replicas: 1
+application_set_replicas: 1
+enable_istio_routing: true

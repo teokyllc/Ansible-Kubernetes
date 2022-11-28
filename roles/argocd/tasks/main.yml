@@ -1,0 +1,40 @@
+---
+- name: Create a namespace
+  kubernetes.core.k8s:
+    state: present
+    kind: Namespace
+    name: "{{ argo_cd_namespace }}"
+
+- name: Add Argo chart repo
+  kubernetes.core.helm_repository:
+    name: argo
+    repo_url: "https://argoproj.github.io/argo-helm"
+
+- name: Deploy Argo CD
+  kubernetes.core.helm:
+    name: argo-cd
+    chart_ref: argo/argo-cd
+    release_namespace: "{{ argo_cd_namespace }}"
+    wait: yes
+    atomic: no
+    values:
+      redis-ha: 
+        enabled: "{{ redis_ha }}"
+      controller:
+        replicas: "{{ controller_replicas }}"
+      repoServer:
+        replicas: "{{ repo_server_replicas }}"
+      applicationSet:
+        replicas: "{{ application_set_replicas }}"
+      server:
+        service:
+          type: LoadBalancer
+        certificate:
+          enabled: true
+          domain: "{{ argo_cd_fqdn }}"
+          issuer:
+            group: cert-manager.io
+            kind: ClusterIssuer
+            name: vault-issuer
+          privateKey:
+            size: 4096

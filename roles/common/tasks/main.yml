@@ -1,0 +1,87 @@
+---
+- name: Set a hostname
+  ansible.builtin.hostname:
+    name: "{{ hostname }}"
+
+- name: Add Hashicorp GPG key
+  ansible.builtin.get_url:
+    url: https://apt.releases.hashicorp.com/gpg
+    dest: /etc/apt/trusted.gpg.d/hashicorp.asc
+    mode: '0644'
+    force: true
+
+- name: Add Hashicorp Repository
+  apt_repository:
+    repo: deb https://apt.releases.hashicorp.com {{ ansible_distribution_release }} main
+    state: present
+    filename: hashi
+    mode: 0600
+
+- name: Update packages
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+    update_cache: yes
+
+- name: Install packages
+  ansible.builtin.apt:
+    pkg:
+    - apt-transport-https
+    - containerd
+    - curl
+    - python3-pip
+    - vault
+
+- name: Install Python yaml
+  ansible.builtin.pip:
+    name: pyyaml
+    executable: pip3
+
+- name: Install Python Kubernetes
+  ansible.builtin.pip:
+    name: kubernetes
+    executable: pip3
+
+- name: Copy kernel modules
+  ansible.builtin.copy:
+    src: files/k8s-modules.conf
+    dest: /etc/modules-load.d/k8s-modules.conf
+
+- name: Load kernal modules
+  ansible.builtin.shell: |
+    modprobe br_netfilter 
+    modprobe overlay
+
+- name: Copy kernel parameters
+  ansible.builtin.copy:
+    src: files/k8s-kernel-params.conf
+    dest: /etc/sysctl.d/k8s.conf
+
+- name: Reload sysctl
+  ansible.builtin.shell: sysctl --system
+
+- name: Make the Swap inactive
+  command: swapoff -a
+  
+- name: Remove Swap entry from /etc/fstab
+  lineinfile:
+    dest: /etc/fstab
+    regexp: swap
+    state: absent
+
+- name: Create a directory for containerd
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: '0755'
+
+- name: Create containerd config
+  ansible.builtin.shell: |
+    containerd config default | tee /etc/containerd/config.toml 
+    sed -i "s/SystemdCgroup = false/SystemdCgroup = true/g" /etc/containerd/config.toml
+
+- name: Restart containerd
+  ansible.builtin.systemd:
+    state: restarted
+    name: containerd
+    enabled: yes

@@ -1,0 +1,71 @@
+---
+- name: Add Google official GPG key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+
+- name: Add Kubernetes Repository
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main 
+    state: present
+    filename: kubernetes
+    mode: 0600
+
+- name: Install Kubernetes packages
+  ansible.builtin.apt:
+    state: latest
+    update_cache: yes
+    pkg:
+    - kubeadm
+    - kubelet
+    - kubectl
+
+- name: Add Helm GPG key
+  apt_key:
+    url: https://baltocdn.com/helm/signing.asc
+    state: present
+
+- name: Add Helm Repository
+  apt_repository:
+    repo: deb https://baltocdn.com/helm/stable/debian/ all main
+    state: present
+    filename: helm
+    mode: 0600
+
+- name: Install Helm
+  ansible.builtin.apt:
+    state: latest
+    update_cache: yes
+    pkg:
+    - helm
+
+- name: Place hold on packages
+  ansible.builtin.shell: |
+    apt-mark hold kubelet kubeadm kubectl
+
+- name: Check if kubeadm init has been run
+  stat:
+    path: /root/k8s-init
+  register: kubeadm_init_result
+
+- name: Deploy Kubernetes
+  when: not kubeadm_init_result.stat.exists
+  ansible.builtin.shell: |
+    kubeadm init --pod-network-cidr={{ kubernetes_pod_cidr }} --control-plane-endpoint={{ kubernetes_fqdn }} > /root/k8s-init
+    export VAULT_ADDR={{ vault_addr }}
+    export VAULT_TOKEN={{ vault_token }}
+    vault kv put -tls-skip-verify -mount=kv kubeconfig kubeconfig=@/etc/kubernetes/admin.conf
+    mkdir -p $HOME/.kube
+    cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+    chown $(id -u):$(id -g) $HOME/.kube/config
+
+- name: Untaint master node
+  kubernetes.core.k8s_taint:
+    state: absent
+    name: "{{ hostname }}"
+    taints:
+    - effect: NoSchedule
+      key: "node-role.kubernetes.io/control-plane"
+
+- name: Deploy Flannel CNI
+  ansible.builtin.shell: kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml

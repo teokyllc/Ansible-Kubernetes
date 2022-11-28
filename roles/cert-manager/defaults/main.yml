@@ -1,0 +1,3 @@
+cert_manager_namespace: cert-manager
+vault_issuer_enabled: true
+vault_signing_path: pki/sign/intermediate-teokyllc-internal
