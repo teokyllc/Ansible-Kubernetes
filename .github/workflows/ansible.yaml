@@ -22,6 +22,7 @@ jobs:
           vault write -field=signed_key ssh-client-signer/sign/signer-role public_key=@$HOME/.ssh/id_rsa.pub > ~/.ssh/id_rsa-cert.pub
           chmod 600 ~/.ssh/id_rsa-cert.pub
           export ANSIBLE_HOST_KEY_CHECKING=False
+          export ANSIBLE_REMOTE_TEMP=/tmp
           ansible-playbook -i inventory --private-key ~/.ssh/id_rsa --user ansible k8s-single-node.yaml --check
 
       - name: Run Ansible
@@ -32,4 +33,5 @@ jobs:
           vault write -field=signed_key ssh-client-signer/sign/signer-role public_key=@$HOME/.ssh/id_rsa.pub > ~/.ssh/id_rsa-cert.pub
           chmod 600 ~/.ssh/id_rsa-cert.pub
           export ANSIBLE_HOST_KEY_CHECKING=False
+          export ANSIBLE_REMOTE_TEMP=/tmp
           ansible-playbook -i inventory --private-key ~/.ssh/id_rsa --user ansible k8s-single-node.yaml
