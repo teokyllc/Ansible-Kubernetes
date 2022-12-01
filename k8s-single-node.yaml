@@ -48,7 +48,7 @@
         github_org: teokyllc
         actions_runner_controller_namespace: actions-runner-system
         actions_runner_namespace: actions-runner
-        actions_runner_repository: ataylorregistry.azurecr.io
+        actions_runner_repository: cr.teokyllc.internal
         actions_runner_image: actions-runner-dind
         actions_runner_tag: latest
         actions_runner_replicas: 1
@@ -63,10 +63,3 @@
         repo_server_replicas: 1
         application_set_replicas: 1
         enable_istio_routing: true
-
-  tasks:
-    - name: Reboot the kubernetes node
-      reboot:
-        reboot_timeout: 200
-        connect_timeout: 10
-        test_command: uptime

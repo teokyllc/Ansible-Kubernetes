@@ -27,13 +27,13 @@
       image:
         actionsRunnerRepositoryAndTag: "{{ actions_runner_repository }}/{{ actions_runner_image }}:{{ actions_runner_tag }}"
         actionsRunnerImagePullSecrets: 
-        - acr-access
+        - cr-access
 
 - name: Base 64 encode dockerconfigjson
   ansible.builtin.shell: |
     export VAULT_ADDR={{ vault_addr }}
     export VAULT_TOKEN={{ vault_token }}
-    vault kv get -tls-skip-verify -mount=kv -field=dockerconfigjson docker/registries/ataylorregistry
+    vault kv get -tls-skip-verify -mount=kv -field=dockerconfigjson docker/registries/cr.teokyllc.internal
   register: dockerconfigjson
 
 - name: Create Actions Runner namespace
@@ -50,7 +50,7 @@
       apiVersion: v1
       kind: Secret
       metadata:
-        name: acr-access
+        name: cr-access
         namespace: "{{ actions_runner_namespace }}"
       data:
         .dockerconfigjson: "{{ dockerconfigjson.stdout }}"

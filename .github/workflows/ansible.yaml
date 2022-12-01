@@ -1,0 +1,26 @@
+name: Run Ansible
+
+on: push
+
+env:
+  VAULT_ADDR: "https://vault.teokyllc.internal:8200"
+  VAULT_TOKEN: ${{secrets.VAULT_TOKEN}}
+
+jobs:
+  run-ansible:
+    name: Run Ansible playbook
+    runs-on: [self-hosted]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Run Ansible
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        run: |
+          rm -rf ~/.ssh || echo "~/.ssh doesn't exist"
+          ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -P "" -C allan
+          vault write -field=signed_key ssh-client-signer/sign/signer-role public_key=@$HOME/.ssh/id_rsa.pub > ~/.ssh/id_rsa-cert.pub
+          chmod 600 ~/.ssh/id_rsa-cert.pub
+          export ANSIBLE_HOST_KEY_CHECKING=False
+          ansible-playbook -i inventory --private-key ~/.ssh/id_rsa --user allan k8s-single-node.yaml
