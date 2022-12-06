@@ -1,6 +1,6 @@
 ---
 - name: Enable strict ARP mode
-  ansible.builtin.shell: |
+  shell: |
     kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e "s/strictARP: false/strictARP: true/" | kubectl apply -f - -n kube-system
     kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e 's/mode: ""/mode: "ipvs"/' | kubectl apply -f - -n kube-system
 
@@ -19,7 +19,7 @@
     atomic: yes
 
 - name: Create Metal LB IP Address Pool
-  ansible.builtin.shell: |
+  shell: |
     sleep 60
     cat <<EOF | kubectl apply -f -
     apiVersion: metallb.io/v1beta1
