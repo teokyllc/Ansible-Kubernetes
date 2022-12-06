@@ -1,8 +1,7 @@
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
+pool: k8s-linux
 
 steps:
 - script: echo Hello, world!
