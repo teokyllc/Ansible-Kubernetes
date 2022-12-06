@@ -48,7 +48,7 @@
     dest: /etc/modules-load.d/k8s-modules.conf
 
 - name: Load kernal modules
-  ansible.builtin.shell: |
+  shell: |
     modprobe br_netfilter 
     modprobe overlay
 
