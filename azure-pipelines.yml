@@ -13,6 +13,9 @@ steps:
     vault write -field=signed_key ssh-client-signer/sign/signer-role public_key=@$HOME/.ssh/id_rsa.pub > ~/.ssh/id_rsa-cert.pub
     chmod 600 ~/.ssh/id_rsa-cert.pub
   displayName: 'Create SSH keys'
+  env:
+    VAULT_ADDR: $(VAULT_ADDR)
+    VAULT_TOKEN: $(VAULT_TOKEN)
 
 - script: |
     export ANSIBLE_HOST_KEY_CHECKING=False
