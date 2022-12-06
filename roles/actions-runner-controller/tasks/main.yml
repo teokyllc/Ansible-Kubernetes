@@ -5,7 +5,7 @@
     repo_url: "https://actions-runner-controller.github.io/actions-runner-controller"
 
 - name: Get Github PAT from Vault
-  ansible.builtin.shell: |
+  shell: |
     export VAULT_ADDR={{ vault_addr }}
     export VAULT_TOKEN={{ vault_token }}
     vault kv get -tls-skip-verify -mount=kv -field=pat github
@@ -30,7 +30,7 @@
         - cr-access
 
 - name: Base 64 encode dockerconfigjson
-  ansible.builtin.shell: |
+  shell: |
     export VAULT_ADDR={{ vault_addr }}
     export VAULT_TOKEN={{ vault_token }}
     vault kv get -tls-skip-verify -mount=kv -field=dockerconfigjson docker/registries/cr.teokyllc.internal

@@ -17,7 +17,7 @@
 
 - name: Get cert-manager approle id from Vault
   when: vault_issuer_enabled
-  ansible.builtin.shell: |
+  shell: |
     export VAULT_ADDR={{ vault_addr }}
     export VAULT_TOKEN={{ vault_token }}
     vault kv get -tls-skip-verify -mount=kv -field=approle_role_id cert-manager
@@ -25,7 +25,7 @@
 
 - name: Get cert-manager approle secret id from Vault
   when: vault_issuer_enabled
-  ansible.builtin.shell: |
+  shell: |
     export VAULT_ADDR={{ vault_addr }}
     export VAULT_TOKEN={{ vault_token }}
     vault kv get -tls-skip-verify -mount=kv -field=approle_secret_id cert-manager
@@ -33,7 +33,7 @@
 
 - name: Get CA cert from Vault
   when: vault_issuer_enabled
-  ansible.builtin.shell: |
+  shell: |
     export VAULT_ADDR={{ vault_addr }}
     export VAULT_TOKEN={{ vault_token }}
     vault kv get -tls-skip-verify -mount=kv -field=b64_ca_cert cert-manager

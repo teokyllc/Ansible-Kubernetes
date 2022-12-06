@@ -40,7 +40,7 @@
     - helm
 
 - name: Place hold on packages
-  ansible.builtin.shell: |
+  shell: |
     apt-mark hold kubelet kubeadm kubectl
 
 - name: Check if kubeadm init has been run
@@ -50,7 +50,7 @@
 
 - name: Deploy Kubernetes
   when: not kubeadm_init_result.stat.exists
-  ansible.builtin.shell: |
+  shell: |
     kubeadm init --pod-network-cidr={{ kubernetes_pod_cidr }} --control-plane-endpoint={{ kubernetes_fqdn }} > /root/k8s-init
     export VAULT_ADDR={{ vault_addr }}
     export VAULT_TOKEN={{ vault_token }}
@@ -68,4 +68,4 @@
       key: "node-role.kubernetes.io/control-plane"
 
 - name: Deploy Flannel CNI
-  ansible.builtin.shell: kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+  shell: kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
