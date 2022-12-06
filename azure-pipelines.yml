@@ -20,5 +20,6 @@ steps:
 - script: |
     export ANSIBLE_HOST_KEY_CHECKING=False
     export ANSIBLE_REMOTE_TEMP=/tmp
+    ansible-galaxy collection install kubernetes.core
     ansible-playbook -i inventory --private-key ~/.ssh/id_rsa --user ansible k8s-single-node.yaml
   displayName: 'Run Ansible'
