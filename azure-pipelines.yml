@@ -3,11 +3,19 @@ trigger:
 
 pool: k8s-linux
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+- group: Vault
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+steps:
+
+- displayName: 'Create SSH keys'
+  script: |
+    ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -P "" -C ansible
+    vault write -field=signed_key ssh-client-signer/sign/signer-role public_key=@$HOME/.ssh/id_rsa.pub > ~/.ssh/id_rsa-cert.pub
+    chmod 600 ~/.ssh/id_rsa-cert.pub
+
+- displayName: 'Run Ansible'
+  script: |
+    export ANSIBLE_HOST_KEY_CHECKING=False
+    export ANSIBLE_REMOTE_TEMP=/tmp
+    ansible-playbook -i inventory --private-key ~/.ssh/id_rsa --user ansible k8s-single-node.yaml
